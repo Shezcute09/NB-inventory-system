@@ -9,7 +9,10 @@
 <body>
     <div class="app-card">
         <header>
-            <div class="logo-placeholder">NB AUTOMATED</div>
+            <div class="logo-container">
+                <!-- Ensure your logo is in assets/logo.png -->
+                <img src="assets/logo.png" alt="NB AUTOMATED" class="company-logo">
+            </div>
             <h1>Operations Portal</h1>
             <p>System by The Oracle</p>
         </header>
@@ -35,11 +38,14 @@
 
             <!-- Product/Reason Input -->
             <div class="input-group">
-                <label id="productLabel">Product / Item</label>
+                <div class="label-row">
+                    <label id="productLabel">Product / Item</label>
+                    <!-- This is where the Stock Reminder will appear -->
+                    <span id="stockBadge" class="stock-badge hidden"></span>
+                </div>
                 <select id="product" required disabled>
                     <option value="">Select Category First</option>
                 </select>
-                <!-- Hidden input for Manual Entry (Expenses) -->
                 <input type="text" id="manualInput" class="hidden" placeholder="e.g. Branded Nylon, Fuel">
             </div>
 
