@@ -3,39 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NB Automated System | Staff Portal</title>
+    <title>NB Automated | Operations Portal</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app-container">
-        <div class="logo-section">
-            <img src="assets/logo.png" alt="Company Logo" class="company-logo">
-        </div>
+    <div class="app-card">
+        <header>
+            <div class="logo-placeholder">NB AUTOMATED</div>
+            <h1>Operations Portal</h1>
+            <p>System by The Oracle</p>
+        </header>
 
-        <form id="staffForm">
-            <h1>Internal Inventory Log</h1>
-            
-            <label>Transaction Type</label>
-            <select id="saleType" required>
-                <option value="Sale">Sale (Income)</option>
-                <option value="Expense">Expense (Outflow)</option>
-            </select>
+        <form id="opForm">
+            <!-- Transaction Type -->
+            <div class="input-group">
+                <label>Transaction Type</label>
+                <select id="saleType" required>
+                    <option value="Retail">Retail Sale</option>
+                    <option value="Reseller">Reseller Sale</option>
+                    <option value="Expense">Business Expense</option>
+                </select>
+            </div>
 
-            <label>Category</label>
-            <select id="category" required disabled>
-                <option>Loading Categories...</option>
-            </select>
+            <!-- Category Dropdown -->
+            <div class="input-group" id="catGroup">
+                <label>Category</label>
+                <select id="category" required disabled>
+                    <option value="">Syncing with Sheet...</option>
+                </select>
+            </div>
 
-            <label>Product / Item Name</label>
-            <select id="product" required disabled>
-                <option>Select Category First</option>
-            </select>
+            <!-- Product/Reason Input -->
+            <div class="input-group">
+                <label id="productLabel">Product / Item</label>
+                <select id="product" required disabled>
+                    <option value="">Select Category First</option>
+                </select>
+                <!-- Hidden input for Manual Entry (Expenses) -->
+                <input type="text" id="manualInput" class="hidden" placeholder="e.g. Branded Nylon, Fuel">
+            </div>
 
-            <label>Quantity</label>
-            <input type="number" id="qty" min="1" placeholder="Enter Amount/Qty" required>
+            <!-- Quantity/Amount Input -->
+            <div class="input-group">
+                <label id="qtyLabel">Quantity</label>
+                <input type="number" id="qty" min="1" placeholder="Enter Qty" required>
+            </div>
 
             <button type="submit" id="submitBtn">Log Transaction</button>
-            <p id="msg"></p>
+            <div id="feedback" class="hidden"></div>
         </form>
     </div>
     <script src="script.js"></script>
