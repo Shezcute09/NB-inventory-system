@@ -10,15 +10,20 @@
     <div class="app-card">
         <header>
             <div class="logo-container">
-                <!-- Ensure your logo is in assets/logo.png -->
-                <img src="assets/logo.png" alt="NB AUTOMATED" class="company-logo">
+                <img src="assets/logo.png" alt="NB AUTOMATED" class="company-logo" onerror="this.style.display='none'">
             </div>
             <h1>Operations Portal</h1>
             <p>System by The Oracle</p>
         </header>
 
+        <!-- Navigation Tabs -->
+        <nav class="view-tabs">
+            <button id="viewEntryBtn" class="tab-btn active-tab">Record Entry</button>
+            <button id="viewDashBtn" class="tab-btn">Data Dashboard</button>
+        </nav>
+
+        <!-- 1. RECORD ENTRY VIEW -->
         <form id="opForm">
-            <!-- Transaction Type -->
             <div class="input-group">
                 <label>Transaction Type</label>
                 <select id="saleType" required>
@@ -28,7 +33,6 @@
                 </select>
             </div>
 
-            <!-- Category Dropdown -->
             <div class="input-group" id="catGroup">
                 <label>Category</label>
                 <select id="category" required disabled>
@@ -36,11 +40,9 @@
                 </select>
             </div>
 
-            <!-- Product/Reason Input -->
             <div class="input-group">
                 <div class="label-row">
                     <label id="productLabel">Product / Item</label>
-                    <!-- This is where the Stock Reminder will appear -->
                     <span id="stockBadge" class="stock-badge hidden"></span>
                 </div>
                 <select id="product" required disabled>
@@ -49,7 +51,6 @@
                 <input type="text" id="manualInput" class="hidden" placeholder="e.g. Branded Nylon, Fuel">
             </div>
 
-            <!-- Quantity/Amount Input -->
             <div class="input-group">
                 <label id="qtyLabel">Quantity</label>
                 <input type="number" id="qty" min="1" placeholder="Enter Qty" required>
@@ -58,6 +59,29 @@
             <button type="submit" id="submitBtn">Log Transaction</button>
             <div id="feedback" class="hidden"></div>
         </form>
+
+        <!-- 2. DATA DASHBOARD VIEW -->
+        <div id="dashboardView" class="hidden">
+            <div class="stats-grid">
+                <div class="stat-card highlight">
+                    <span class="stat-label">Monthly Net Profit</span>
+                    <span id="displayProfit" class="stat-value">₦0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Monthly Revenue</span>
+                    <span id="displayRevenue" class="stat-value">₦0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Profit Margin</span>
+                    <span id="displayMargin" class="stat-value">0%</span>
+                </div>
+            </div>
+
+            <!-- This container will be populated by script.js with Yearly stats and Top 10 lists -->
+            <div id="stockAnalysis" class="stock-list">
+                <div class="loading-text">Loading Analytics...</div>
+            </div>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
