@@ -1,28 +1,23 @@
-// REPLACE THIS URL with your actual Google Apps Script Web App URL from Part 1
 const API_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL"; 
 
-let inventoryMap = {};
+let inventoryData = { categories: {}, stockLevels: {} };
 
-// 1. Fetch Categories from Sheet on Load
 async function fetchSheetData() {
     try {
         const response = await fetch(API_URL);
-        inventoryMap = await response.json();
-        
-        // Only populate if not in Expense mode
+        inventoryData = await response.json();
         if (document.getElementById('saleType').value !== 'Expense') {
             populateCategories();
         }
     } catch (err) {
-        showFeedback("Error syncing with Google Sheet.", "error");
+        showFeedback("Error syncing stock levels.", "error");
     }
 }
 
 function populateCategories() {
     const catSelect = document.getElementById('category');
     catSelect.innerHTML = '<option value="">-- Select Category --</option>';
-    
-    Object.keys(inventoryMap).sort().forEach(cat => {
+    Object.keys(inventoryData.categories).sort().forEach(cat => {
         const opt = document.createElement('option');
         opt.value = cat;
         opt.textContent = cat;
@@ -31,52 +26,9 @@ function populateCategories() {
     catSelect.disabled = false;
 }
 
-// 2. Handle Sale Type Changes (Toggle Expense Mode)
-document.getElementById('saleType').addEventListener('change', (e) => {
-    const type = e.target.value;
-    const catGroup = document.getElementById('catGroup');
-    const prodSelect = document.getElementById('product');
-    const manualInput = document.getElementById('manualInput');
-    const productLabel = document.getElementById('productLabel');
-    const qtyLabel = document.getElementById('qtyLabel');
-
-    if (type === 'Expense') {
-        // Expense Mode: Hide Category, Show Manual Input
-        catGroup.classList.add('hidden');
-        document.getElementById('category').required = false;
-        
-        prodSelect.classList.add('hidden');
-        prodSelect.required = false;
-        
-        manualInput.classList.remove('hidden');
-        manualInput.required = true;
-        
-        productLabel.textContent = "Reason for Expense";
-        qtyLabel.textContent = "Amount (₦)";
-    } else {
-        // Sales Mode: Show Category, Show Dropdown
-        catGroup.classList.remove('hidden');
-        document.getElementById('category').required = true;
-        
-        prodSelect.classList.remove('hidden');
-        prodSelect.required = true;
-        
-        manualInput.classList.add('hidden');
-        manualInput.required = false;
-        
-        productLabel.textContent = "Product / Item";
-        qtyLabel.textContent = "Quantity";
-        
-        // Refresh categories if map is loaded
-        if (Object.keys(inventoryMap).length > 0) populateCategories();
-    }
-});
-
-// 3. Dependent Dropdown Logic
 document.getElementById('category').addEventListener('change', (e) => {
     const prodSelect = document.getElementById('product');
-    const products = inventoryMap[e.target.value] || [];
-    
+    const products = inventoryData.categories[e.target.value] || [];
     prodSelect.innerHTML = '<option value="">-- Select Item --</option>';
     products.forEach(prod => {
         const opt = document.createElement('option');
@@ -84,20 +36,50 @@ document.getElementById('category').addEventListener('change', (e) => {
         opt.textContent = prod;
         prodSelect.appendChild(opt);
     });
-    
     prodSelect.disabled = false;
+    document.getElementById('stockBadge').classList.add('hidden'); // Reset badge
 });
 
-// 4. Submit Handler
+// STOCK REMINDER LOGIC
+document.getElementById('product').addEventListener('change', (e) => {
+    const productName = e.target.value;
+    const stock = inventoryData.stockLevels[productName];
+    const badge = document.getElementById('stockBadge');
+    
+    if (productName && stock !== undefined) {
+        badge.textContent = `Current Stock: ${stock}`;
+        badge.classList.remove('hidden', 'low-stock', 'out-stock', 'good-stock');
+        
+        if (stock <= 0) {
+            badge.classList.add('out-stock');
+            badge.textContent += " (OUT OF STOCK)";
+        } else if (stock <= 5) {
+            badge.classList.add('low-stock');
+            badge.textContent += " (LOW!)";
+        } else {
+            badge.classList.add('good-stock');
+        }
+    } else {
+        badge.classList.add('hidden');
+    }
+});
+
+document.getElementById('saleType').addEventListener('change', (e) => {
+    const isExpense = e.target.value === 'Expense';
+    document.getElementById('catGroup').style.display = isExpense ? 'none' : 'block';
+    document.getElementById('product').style.display = isExpense ? 'none' : 'block';
+    document.getElementById('manualInput').style.display = isExpense ? 'block' : 'none';
+    document.getElementById('stockBadge').classList.add('hidden');
+    if (!isExpense && Object.keys(inventoryData.categories).length > 0) populateCategories();
+});
+
 document.getElementById('opForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
-    btn.textContent = "Processing...";
+    btn.textContent = "Logging...";
     
     const isExpense = document.getElementById('saleType').value === 'Expense';
-    
-    // Construct payload dynamically based on mode
     const payload = {
         saleType: document.getElementById('saleType').value,
         category: isExpense ? 'Expense' : document.getElementById('category').value,
@@ -106,18 +88,12 @@ document.getElementById('opForm').addEventListener('submit', async (e) => {
     };
 
     try {
-        await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        });
-        showFeedback("✅ Transaction Saved Successfully!", "success");
+        await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        showFeedback("✅ Logged to Sheet!", "success");
         e.target.reset();
-        
-        // Reset UI state
-        document.getElementById('saleType').dispatchEvent(new Event('change'));
-        
+        fetchSheetData(); // Refresh stock levels after sale
     } catch (err) {
-        showFeedback("Submission Failed. Check Connection.", "error");
+        showFeedback("Error logging data.", "error");
     } finally {
         btn.disabled = false;
         btn.textContent = "Log Transaction";
