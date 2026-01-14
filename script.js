@@ -1,6 +1,6 @@
 // 1. CONFIGURATION
 // REPLACE THE URL BELOW with your actual Google Apps Script Web App URL
-const API_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL"; 
+const API_URL = "https://script.google.com/macros/s/AKfycbxPzAtnBzgPhPnwKVSl7gFwgjXPGe799sYBDArclT-Czn1MUMnVF5LccxPaXvPiCds/exec"; 
 
 // 2. STATE MANAGEMENT
 let inventoryData = { categories: {}, stockLevels: {} };
