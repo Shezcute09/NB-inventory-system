@@ -1,4 +1,4 @@
-const API_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL"; 
+const API_URL = "https://script.google.com/macros/s/AKfycbwcZLRw34yHx1wOx1Zw75BgvvhMc6lhvKnfQLzpQmK9NyezhenIW4V7TWQe6ulFiXPj/exec; 
 
 let inventoryData = { categories: {}, stockLevels: {} };
 
