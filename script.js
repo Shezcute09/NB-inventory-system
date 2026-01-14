@@ -1,29 +1,136 @@
 // 1. CONFIGURATION
-// REPLACE THE URL BELOW with your actual Google Apps Script Web App URL
-const API_URL = "https://script.google.com/macros/s/AKfycbxPzAtnBzgPhPnwKVSl7gFwgjXPGe799sYBDArclT-Czn1MUMnVF5LccxPaXvPiCds/exec"; 
+const API_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL"; 
 
 // 2. STATE MANAGEMENT
-let inventoryData = { categories: {}, stockLevels: {} };
+let inventoryData = { categories: {}, stockLevels: {}, analytics: {} };
+let currentView = 'entry'; 
 
 /**
- * FETCH DATA: Syncs categories and current stock from Google Sheets
+ * FETCH DATA: Syncs categories, stock, and analytics from Google Sheets
  */
 async function fetchSheetData() {
-    const catSelect = document.getElementById('category');
     try {
         const response = await fetch(API_URL);
         if (!response.ok) throw new Error('Network response was not ok');
         
         inventoryData = await response.json();
         
-        // Only populate dropdowns if we aren't in Expense mode
-        if (document.getElementById('saleType').value !== 'Expense') {
-            populateCategories();
+        if (currentView === 'entry') {
+            if (document.getElementById('saleType').value !== 'Expense') {
+                populateCategories();
+            }
+        } else {
+            renderDashboard();
         }
     } catch (err) {
         console.error("Fetch Error:", err);
         showFeedback("Sync failed. Check API URL and Permissions.", "error");
     }
+}
+
+/**
+ * UI LOGIC: Switch between Entry Form and Analytics Dashboard
+ */
+function toggleView(view) {
+    currentView = view;
+    const formEl = document.getElementById('opForm');
+    const dashEl = document.getElementById('dashboardView');
+    const entryBtn = document.getElementById('viewEntryBtn');
+    const dashBtn = document.getElementById('viewDashBtn');
+
+    if (view === 'dashboard') {
+        formEl.classList.add('hidden');
+        dashEl.classList.remove('hidden');
+        dashBtn.classList.add('active-tab');
+        entryBtn.classList.remove('active-tab');
+        renderDashboard();
+    } else {
+        formEl.classList.remove('hidden');
+        dashEl.classList.add('hidden');
+        entryBtn.classList.add('active-tab');
+        dashBtn.classList.remove('active-tab');
+        if (Object.keys(inventoryData.categories).length > 0) populateCategories();
+    }
+}
+
+/**
+ * RENDER DASHBOARD: Displays KPI Cards with Comparisons and Leaderboards
+ */
+function renderDashboard() {
+    const stats = inventoryData.analytics || {};
+    
+    // Update KPI Cards
+    updateKPICard('displayRevenue', stats.revenue, stats.revVsLastMonth, '₦');
+    updateKPICard('displayProfit', stats.profit, stats.profitVsLastMonth, '₦');
+    
+    // Calculate and Update Margin
+    const margin = stats.revenue > 0 ? ((stats.profit / stats.revenue) * 100).toFixed(1) : 0;
+    document.getElementById('displayMargin').textContent = `${margin}%`;
+
+    // Render Year-to-Date Summary
+    renderYearlySummary(stats);
+
+    // Render Top Products List
+    renderTopProducts(stats);
+}
+
+function updateKPICard(id, value, comparison, prefix = '') {
+    const el = document.getElementById(id);
+    el.textContent = `${prefix}${(value || 0).toLocaleString()}`;
+    
+    // Optional: add small comparison text if needed (e.g. via a title attribute or extra span)
+    if (comparison !== undefined) {
+        const trend = comparison >= 0 ? '↑' : '↓';
+        el.title = `${trend} ${Math.abs(comparison)}% vs Last Month`;
+    }
+}
+
+function renderYearlySummary(stats) {
+    const container = document.getElementById('stockAnalysis');
+    // We clear it initially to start building the sections
+    container.innerHTML = '<h3>📊 Yearly Performance (YTD)</h3>';
+    
+    const yearlyRow = document.createElement('div');
+    yearlyRow.className = 'stock-row good';
+    yearlyRow.innerHTML = `<span>YTD Revenue:</span> <strong>₦${(stats.yearlyRevenue || 0).toLocaleString()}</strong>`;
+    container.appendChild(yearlyRow);
+
+    const yearlyProfitRow = document.createElement('div');
+    yearlyProfitRow.className = 'stock-row good';
+    yearlyProfitRow.innerHTML = `<span>YTD Profit:</span> <strong>₦${(stats.yearlyProfit || 0).toLocaleString()}</strong>`;
+    container.appendChild(yearlyProfitRow);
+}
+
+function renderTopProducts(stats) {
+    const container = document.getElementById('stockAnalysis');
+    
+    // Top by Volume Section (Leaderboard)
+    const volHeader = document.createElement('div');
+    volHeader.innerHTML = '<p style="font-size:0.8rem; font-weight:bold; margin-top:20px; color:#2980b9; text-transform:uppercase;">Top 10 Products by Revenue</p>';
+    container.appendChild(volHeader);
+
+    (stats.topProductsByVol || []).forEach(item => {
+        if(item.name) {
+            const row = document.createElement('div');
+            row.className = 'stock-row';
+            row.innerHTML = `<span>${item.name}</span> <strong>₦${item.value.toLocaleString()}</strong>`;
+            container.appendChild(row);
+        }
+    });
+
+    // Top by Quantity Section
+    const qtyHeader = document.createElement('div');
+    qtyHeader.innerHTML = '<p style="font-size:0.8rem; font-weight:bold; margin-top:20px; color:#27ae60; text-transform:uppercase;">Top 10 Products by Quantity</p>';
+    container.appendChild(qtyHeader);
+
+    (stats.topProductsByQty || []).forEach(item => {
+        if(item.name) {
+            const row = document.createElement('div');
+            row.className = 'stock-row';
+            row.innerHTML = `<span>${item.name}</span> <strong>${item.value} units</strong>`;
+            container.appendChild(row);
+        }
+    });
 }
 
 /**
@@ -65,7 +172,7 @@ document.getElementById('category').addEventListener('change', (e) => {
     });
     
     prodSelect.disabled = false;
-    document.getElementById('stockBadge').classList.add('hidden'); // Reset badge
+    document.getElementById('stockBadge').classList.add('hidden');
 });
 
 /**
@@ -114,18 +221,12 @@ document.getElementById('saleType').addEventListener('change', (e) => {
         manualInput.classList.remove('hidden');
         productLabel.textContent = "Reason for Expense";
         qtyLabel.textContent = "Amount (₦)";
-        document.getElementById('category').required = false;
-        prodSelect.required = false;
-        manualInput.required = true;
     } else {
         catGroup.classList.remove('hidden');
         prodSelect.classList.remove('hidden');
         manualInput.classList.add('hidden');
         productLabel.textContent = "Product / Item";
         qtyLabel.textContent = "Quantity";
-        document.getElementById('category').required = true;
-        prodSelect.required = true;
-        manualInput.required = false;
         if (Object.keys(inventoryData.categories).length > 0) populateCategories();
     }
 });
@@ -157,9 +258,7 @@ document.getElementById('opForm').addEventListener('submit', async (e) => {
         showFeedback("✅ Transaction Logged Successfully!", "success");
         e.target.reset();
         
-        // Refresh UI state
         document.getElementById('saleType').dispatchEvent(new Event('change'));
-        // Refresh stock data from sheet
         fetchSheetData();
         
     } catch (err) {
@@ -170,9 +269,6 @@ document.getElementById('opForm').addEventListener('submit', async (e) => {
     }
 });
 
-/**
- * UTILITY: Show temporary feedback message
- */
 function showFeedback(text, type) {
     const el = document.getElementById('feedback');
     el.textContent = text;
@@ -181,5 +277,8 @@ function showFeedback(text, type) {
     setTimeout(() => { el.classList.add('hidden'); }, 4000);
 }
 
-// Initial Sync
+// Navigation Listeners
+document.getElementById('viewEntryBtn').addEventListener('click', () => toggleView('entry'));
+document.getElementById('viewDashBtn').addEventListener('click', () => toggleView('dashboard'));
+
 window.onload = fetchSheetData;
