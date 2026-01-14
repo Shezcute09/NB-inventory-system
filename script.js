@@ -1,5 +1,5 @@
 // 1. CONFIGURATION
-const API_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL"; 
+const API_URL = "https://script.google.com/macros/s/AKfycbxPzAtnBzgPhPnwKVSl7gFwgjXPGe799sYBDArclT-Czn1MUMnVF5LccxPaXvPiCds/exec"; 
 
 // 2. STATE MANAGEMENT
 let inventoryData = { categories: {}, stockLevels: {}, analytics: {} };
