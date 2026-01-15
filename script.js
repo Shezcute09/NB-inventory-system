@@ -1,13 +1,13 @@
-const API_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL"; 
+const API_URL = "https://script.google.com/macros/s/AKfycbxPzAtnBzgPhPnwKVSl7gFwgjXPGe799sYBDArclT-Czn1MUMnVF5LccxPaXvPiCds/exec"; 
 let inventoryData = { categories: {}, stockLevels: {}, analytics: {}, valuation: {} };
 let trendChart, distChart;
 let currentStaff = null;
 
 // Define your Staff PINs here
 const staffList = {
-    "1234": "Dennis",
-    "5678": "Demola",
-    "0000": "Tunmise"
+    "1213": "Dennis",
+    "2396": "Demola",
+    "9845": "Tunmise"
 };
 
 async function handleLogin() {
