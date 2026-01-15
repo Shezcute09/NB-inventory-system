@@ -1,284 +1,151 @@
-// 1. CONFIGURATION
-const API_URL = "https://script.google.com/macros/s/AKfycbxPzAtnBzgPhPnwKVSl7gFwgjXPGe799sYBDArclT-Czn1MUMnVF5LccxPaXvPiCds/exec"; 
+const API_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL"; 
+let inventoryData = { categories: {}, stockLevels: {}, analytics: {}, valuation: {} };
+let trendChart, distChart;
+let currentStaff = null;
 
-// 2. STATE MANAGEMENT
-let inventoryData = { categories: {}, stockLevels: {}, analytics: {} };
-let currentView = 'entry'; 
+// Define your Staff PINs here
+const staffList = {
+    "1234": "Dennis",
+    "5678": "Demola",
+    "0000": "Tunmise"
+};
 
-/**
- * FETCH DATA: Syncs categories, stock, and analytics from Google Sheets
- */
+async function handleLogin() {
+    const pin = document.getElementById('pinInput').value;
+    if (staffList[pin]) {
+        currentStaff = staffList[pin];
+        document.getElementById('loginOverlay').classList.add('hidden');
+        document.getElementById('mainContent').classList.remove('hidden');
+        document.getElementById('staffWelcome').textContent = `Welcome, ${currentStaff}`;
+        fetchSheetData();
+    } else {
+        const errorMsg = document.getElementById('loginError');
+        errorMsg.textContent = "Invalid PIN. Access Denied.";
+        errorMsg.classList.remove('hidden');
+    }
+}
+
 async function fetchSheetData() {
     try {
         const response = await fetch(API_URL);
-        if (!response.ok) throw new Error('Network response was not ok');
-        
         inventoryData = await response.json();
-        
-        if (currentView === 'entry') {
-            if (document.getElementById('saleType').value !== 'Expense') {
-                populateCategories();
-            }
-        } else {
-            renderDashboard();
-        }
-    } catch (err) {
-        console.error("Fetch Error:", err);
-        showFeedback("Sync failed. Check API URL and Permissions.", "error");
-    }
+        setupDashboardSelectors();
+        populateCategories();
+    } catch (err) { console.error("Sync Error:", err); }
 }
 
-/**
- * UI LOGIC: Switch between Entry Form and Analytics Dashboard
- */
-function toggleView(view) {
-    currentView = view;
-    const formEl = document.getElementById('opForm');
-    const dashEl = document.getElementById('dashboardView');
-    const entryBtn = document.getElementById('viewEntryBtn');
-    const dashBtn = document.getElementById('viewDashBtn');
+function setupDashboardSelectors() {
+    const mSelect = document.getElementById('monthSelector');
+    const ySelect = document.getElementById('yearSelector');
+    mSelect.innerHTML = ''; ySelect.innerHTML = '';
 
-    if (view === 'dashboard') {
-        formEl.classList.add('hidden');
-        dashEl.classList.remove('hidden');
-        dashBtn.classList.add('active-tab');
-        entryBtn.classList.remove('active-tab');
-        renderDashboard();
+    inventoryData.analytics.monthlyRecords.forEach((rec, index) => {
+        const opt = document.createElement('option');
+        opt.value = index; opt.textContent = rec.name;
+        mSelect.appendChild(opt);
+    });
+
+    inventoryData.analytics.yearlyRecords.forEach((rec, index) => {
+        const opt = document.createElement('option');
+        opt.value = index; opt.textContent = rec.name;
+        ySelect.appendChild(opt);
+    });
+
+    updateDashboardDisplay();
+}
+
+function updateDashboardDisplay() {
+    const viewType = document.querySelector('input[name="viewMode"]:checked').value;
+    const mSelect = document.getElementById('monthSelector');
+    const ySelect = document.getElementById('yearSelector');
+    
+    let data;
+    if (viewType === 'monthly') {
+        data = inventoryData.analytics.monthlyRecords[mSelect.value];
+        mSelect.classList.remove('hidden'); ySelect.classList.add('hidden');
     } else {
-        formEl.classList.remove('hidden');
-        dashEl.classList.add('hidden');
-        entryBtn.classList.add('active-tab');
-        dashBtn.classList.remove('active-tab');
-        if (Object.keys(inventoryData.categories).length > 0) populateCategories();
+        data = inventoryData.analytics.yearlyRecords[ySelect.value];
+        ySelect.classList.remove('hidden'); mSelect.classList.add('hidden');
     }
+
+    if (!data) return;
+
+    document.getElementById('displayRevenue').textContent = `₦${data.revenue.toLocaleString()}`;
+    document.getElementById('displayNet').textContent = `₦${data.net.toLocaleString()}`;
+    document.getElementById('displayGross').textContent = `₦${data.gross.toLocaleString()}`;
+    document.getElementById('displayExpenses').textContent = `₦${data.expenses.toLocaleString()}`;
+    document.getElementById('valCost').textContent = `₦${inventoryData.valuation.cost.toLocaleString()}`;
+    document.getElementById('valSale').textContent = `₦${inventoryData.valuation.sale.toLocaleString()}`;
+    
+    renderLeaderboards(data);
 }
 
-/**
- * RENDER DASHBOARD: Displays KPI Cards with Comparisons and Leaderboards
- */
-function renderDashboard() {
-    const stats = inventoryData.analytics || {};
-    
-    // Update KPI Cards
-    updateKPICard('displayRevenue', stats.revenue, stats.revVsLastMonth, '₦');
-    updateKPICard('displayProfit', stats.profit, stats.profitVsLastMonth, '₦');
-    
-    // Calculate and Update Margin
-    const margin = stats.revenue > 0 ? ((stats.profit / stats.revenue) * 100).toFixed(1) : 0;
-    document.getElementById('displayMargin').textContent = `${margin}%`;
+function renderLeaderboards(data) {
+    const container = document.getElementById('leaderboardContent');
+    container.innerHTML = '';
 
-    // Render Year-to-Date Summary
-    renderYearlySummary(stats);
+    const sections = [
+        { label: '🔥 Top 10 by Profit (Live)', data: data.topProfit },
+        { label: '📦 Top 10 by Quantity (Live)', data: data.topQty }
+    ];
 
-    // Render Top Products List
-    renderTopProducts(stats);
-}
-
-function updateKPICard(id, value, comparison, prefix = '') {
-    const el = document.getElementById(id);
-    el.textContent = `${prefix}${(value || 0).toLocaleString()}`;
-    
-    // Optional: add small comparison text if needed (e.g. via a title attribute or extra span)
-    if (comparison !== undefined) {
-        const trend = comparison >= 0 ? '↑' : '↓';
-        el.title = `${trend} ${Math.abs(comparison)}% vs Last Month`;
-    }
-}
-
-function renderYearlySummary(stats) {
-    const container = document.getElementById('stockAnalysis');
-    // We clear it initially to start building the sections
-    container.innerHTML = '<h3>📊 Yearly Performance (YTD)</h3>';
-    
-    const yearlyRow = document.createElement('div');
-    yearlyRow.className = 'stock-row good';
-    yearlyRow.innerHTML = `<span>YTD Revenue:</span> <strong>₦${(stats.yearlyRevenue || 0).toLocaleString()}</strong>`;
-    container.appendChild(yearlyRow);
-
-    const yearlyProfitRow = document.createElement('div');
-    yearlyProfitRow.className = 'stock-row good';
-    yearlyProfitRow.innerHTML = `<span>YTD Profit:</span> <strong>₦${(stats.yearlyProfit || 0).toLocaleString()}</strong>`;
-    container.appendChild(yearlyProfitRow);
-}
-
-function renderTopProducts(stats) {
-    const container = document.getElementById('stockAnalysis');
-    
-    // Top by Volume Section (Leaderboard)
-    const volHeader = document.createElement('div');
-    volHeader.innerHTML = '<p style="font-size:0.8rem; font-weight:bold; margin-top:20px; color:#2980b9; text-transform:uppercase;">Top 10 Products by Revenue</p>';
-    container.appendChild(volHeader);
-
-    (stats.topProductsByVol || []).forEach(item => {
-        if(item.name) {
+    sections.forEach(sec => {
+        const h = document.createElement('h4'); h.textContent = sec.label; container.appendChild(h);
+        if (!sec.data || sec.data.length === 0) {
+            const p = document.createElement('p'); p.textContent = "No data for this period"; container.appendChild(p);
+        }
+        sec.data.forEach(item => {
             const row = document.createElement('div');
             row.className = 'stock-row';
-            row.innerHTML = `<span>${item.name}</span> <strong>₦${item.value.toLocaleString()}</strong>`;
+            row.innerHTML = `<span>${item.name}</span><strong>₦${item.value.toLocaleString()}</strong>`;
             container.appendChild(row);
-        }
-    });
-
-    // Top by Quantity Section
-    const qtyHeader = document.createElement('div');
-    qtyHeader.innerHTML = '<p style="font-size:0.8rem; font-weight:bold; margin-top:20px; color:#27ae60; text-transform:uppercase;">Top 10 Products by Quantity</p>';
-    container.appendChild(qtyHeader);
-
-    (stats.topProductsByQty || []).forEach(item => {
-        if(item.name) {
-            const row = document.createElement('div');
-            row.className = 'stock-row';
-            row.innerHTML = `<span>${item.name}</span> <strong>${item.value} units</strong>`;
-            container.appendChild(row);
-        }
+        });
     });
 }
 
-/**
- * UI LOGIC: Populates the Category dropdown
- */
 function populateCategories() {
     const catSelect = document.getElementById('category');
-    catSelect.innerHTML = '<option value="">-- Select Category --</option>';
-    
-    const categories = Object.keys(inventoryData.categories).sort();
-    
-    if (categories.length === 0) {
-        catSelect.innerHTML = '<option value="">No Categories Found</option>';
-        return;
-    }
-
-    categories.forEach(cat => {
+    catSelect.innerHTML = '<option value="">Select Category</option>';
+    Object.keys(inventoryData.categories).forEach(cat => {
         const opt = document.createElement('option');
-        opt.value = cat;
-        opt.textContent = cat;
+        opt.value = cat; opt.textContent = cat;
         catSelect.appendChild(opt);
     });
     catSelect.disabled = false;
 }
 
-/**
- * EVENT: Handle Category change to update Product list
- */
-document.getElementById('category').addEventListener('change', (e) => {
-    const prodSelect = document.getElementById('product');
-    const products = inventoryData.categories[e.target.value] || [];
-    
-    prodSelect.innerHTML = '<option value="">-- Select Item --</option>';
-    products.forEach(prod => {
-        const opt = document.createElement('option');
-        opt.value = prod;
-        opt.textContent = prod;
-        prodSelect.appendChild(opt);
-    });
-    
-    prodSelect.disabled = false;
-    document.getElementById('stockBadge').classList.add('hidden');
+// Event Listeners
+document.getElementById('loginBtn').addEventListener('click', handleLogin);
+document.getElementById('viewEntryBtn').addEventListener('click', () => toggleView('entry'));
+document.getElementById('viewDashBtn').addEventListener('click', () => toggleView('dashboard'));
+document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
+    radio.addEventListener('change', updateDashboardDisplay);
 });
+document.getElementById('monthSelector').addEventListener('change', updateDashboardDisplay);
+document.getElementById('yearSelector').addEventListener('change', updateDashboardDisplay);
 
-/**
- * EVENT: Handle Product change to show Stock Reminder
- */
-document.getElementById('product').addEventListener('change', (e) => {
-    const productName = e.target.value;
-    const stock = inventoryData.stockLevels[productName];
-    const badge = document.getElementById('stockBadge');
-    
-    if (productName && stock !== undefined) {
-        badge.textContent = `Stock: ${stock}`;
-        badge.classList.remove('hidden', 'low-stock', 'out-stock', 'good-stock');
-        
-        if (stock <= 0) {
-            badge.classList.add('out-stock');
-            badge.textContent += " (OUT)";
-        } else if (stock <= 5) {
-            badge.classList.add('low-stock');
-            badge.textContent += " (LOW)";
-        } else {
-            badge.classList.add('good-stock');
-        }
-    } else {
-        badge.classList.add('hidden');
-    }
-});
+function toggleView(view) {
+    document.getElementById('opForm').classList.toggle('hidden', view !== 'entry');
+    document.getElementById('dashboardView').classList.toggle('hidden', view !== 'dashboard');
+}
 
-/**
- * EVENT: Toggle between Sales and Expense modes
- */
-document.getElementById('saleType').addEventListener('change', (e) => {
-    const isExpense = e.target.value === 'Expense';
-    const catGroup = document.getElementById('catGroup');
-    const prodSelect = document.getElementById('product');
-    const manualInput = document.getElementById('manualInput');
-    const productLabel = document.getElementById('productLabel');
-    const qtyLabel = document.getElementById('qtyLabel');
-    const stockBadge = document.getElementById('stockBadge');
-
-    stockBadge.classList.add('hidden');
-
-    if (isExpense) {
-        catGroup.classList.add('hidden');
-        prodSelect.classList.add('hidden');
-        manualInput.classList.remove('hidden');
-        productLabel.textContent = "Reason for Expense";
-        qtyLabel.textContent = "Amount (₦)";
-    } else {
-        catGroup.classList.remove('hidden');
-        prodSelect.classList.remove('hidden');
-        manualInput.classList.add('hidden');
-        productLabel.textContent = "Product / Item";
-        qtyLabel.textContent = "Quantity";
-        if (Object.keys(inventoryData.categories).length > 0) populateCategories();
-    }
-});
-
-/**
- * SUBMIT: Send data to Google Apps Script
- */
-document.getElementById('opForm').addEventListener('submit', async (e) => {
+// Simplified form submission including currentStaff
+document.getElementById('opForm').onsubmit = async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.textContent = "Processing...";
-    
-    const isExpense = document.getElementById('saleType').value === 'Expense';
+    btn.disabled = true; btn.textContent = "Processing...";
     
     const payload = {
         saleType: document.getElementById('saleType').value,
-        category: isExpense ? 'Expense' : document.getElementById('category').value,
-        product: isExpense ? document.getElementById('manualInput').value : document.getElementById('product').value,
-        qty: document.getElementById('qty').value
+        category: document.getElementById('category').value,
+        product: document.getElementById('product').value,
+        qty: document.getElementById('qty').value,
+        staff: currentStaff
     };
 
     try {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        });
-        
-        showFeedback("✅ Transaction Logged Successfully!", "success");
-        e.target.reset();
-        
-        document.getElementById('saleType').dispatchEvent(new Event('change'));
-        fetchSheetData();
-        
-    } catch (err) {
-        showFeedback("Error logging transaction.", "error");
-    } finally {
-        btn.disabled = false;
-        btn.textContent = "Log Transaction";
-    }
-});
-
-function showFeedback(text, type) {
-    const el = document.getElementById('feedback');
-    el.textContent = text;
-    el.className = type;
-    el.classList.remove('hidden');
-    setTimeout(() => { el.classList.add('hidden'); }, 4000);
-}
-
-// Navigation Listeners
-document.getElementById('viewEntryBtn').addEventListener('click', () => toggleView('entry'));
-document.getElementById('viewDashBtn').addEventListener('click', () => toggleView('dashboard'));
-
-window.onload = fetchSheetData;
+        await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+        alert("Success! Record logged by " + currentStaff);
+        location.reload();
+    } catch (err) { alert("Error connecting to sheet."); btn.disabled = false; }
+};
