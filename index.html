@@ -5,24 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NB Automated | Operations Portal</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="app-card">
+    <!-- LOGIN OVERLAY -->
+    <div id="loginOverlay" class="modal-overlay">
+        <div class="login-box">
+            <div class="logo-container">
+                <img src="assets/logo.png" alt="NB AUTOMATED" class="login-logo" onerror="this.style.display='none'">
+            </div>
+            <h2>Staff Access</h2>
+            <p>Enter your 4-digit PIN to unlock</p>
+            <input type="password" id="pinInput" placeholder="PIN" maxlength="4" inputmode="numeric">
+            <button id="loginBtn">Unlock Portal</button>
+            <p id="loginError" class="error-msg hidden"></p>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTENT -->
+    <div id="mainContent" class="app-card hidden">
         <header>
             <div class="logo-container">
                 <img src="assets/logo.png" alt="NB AUTOMATED" class="company-logo" onerror="this.style.display='none'">
             </div>
             <h1>Operations Portal</h1>
-            <p>System by The Oracle</p>
+            <p id="staffWelcome">System by The Oracle</p>
         </header>
 
-        <!-- Navigation Tabs -->
         <nav class="view-tabs">
             <button id="viewEntryBtn" class="tab-btn active-tab">Record Entry</button>
             <button id="viewDashBtn" class="tab-btn">Data Dashboard</button>
         </nav>
 
-        <!-- 1. RECORD ENTRY VIEW -->
+        <!-- RECORD ENTRY VIEW -->
         <form id="opForm">
             <div class="input-group">
                 <label>Transaction Type</label>
@@ -32,55 +47,69 @@
                     <option value="Expense">Business Expense</option>
                 </select>
             </div>
-
             <div class="input-group" id="catGroup">
                 <label>Category</label>
-                <select id="category" required disabled>
-                    <option value="">Syncing with Sheet...</option>
-                </select>
+                <select id="category" required disabled><option value="">Syncing Categories...</option></select>
             </div>
-
             <div class="input-group">
                 <div class="label-row">
                     <label id="productLabel">Product / Item</label>
                     <span id="stockBadge" class="stock-badge hidden"></span>
                 </div>
-                <select id="product" required disabled>
-                    <option value="">Select Category First</option>
-                </select>
-                <input type="text" id="manualInput" class="hidden" placeholder="e.g. Branded Nylon, Fuel">
+                <select id="product" required disabled><option value="">Select Category First</option></select>
             </div>
-
             <div class="input-group">
                 <label id="qtyLabel">Quantity</label>
                 <input type="number" id="qty" min="1" placeholder="Enter Qty" required>
             </div>
-
             <button type="submit" id="submitBtn">Log Transaction</button>
-            <div id="feedback" class="hidden"></div>
         </form>
 
-        <!-- 2. DATA DASHBOARD VIEW -->
+        <!-- DATA DASHBOARD VIEW -->
         <div id="dashboardView" class="hidden">
+            <div class="filter-controls">
+                <div class="mode-toggle">
+                    <label><input type="radio" name="viewMode" value="monthly" checked> Monthly</label>
+                    <label><input type="radio" name="viewMode" value="yearly"> Yearly</label>
+                </div>
+                <select id="monthSelector" class="selector-ui"></select>
+                <select id="yearSelector" class="selector-ui hidden"></select>
+            </div>
+
             <div class="stats-grid">
                 <div class="stat-card highlight">
-                    <span class="stat-label">Monthly Net Profit</span>
-                    <span id="displayProfit" class="stat-value">₦0</span>
+                    <span class="stat-label">Net Profit</span>
+                    <span id="displayNet" class="stat-value">₦0</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">Monthly Revenue</span>
+                    <span class="stat-label">Gross Profit</span>
+                    <span id="displayGross" class="stat-value">₦0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">Revenue</span>
                     <span id="displayRevenue" class="stat-value">₦0</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-label">Profit Margin</span>
-                    <span id="displayMargin" class="stat-value">0%</span>
+                    <span class="stat-label">Expenses</span>
+                    <span id="displayExpenses" class="stat-value">₦0</span>
                 </div>
             </div>
 
-            <!-- This container will be populated by script.js with Yearly stats and Top 10 lists -->
-            <div id="stockAnalysis" class="stock-list">
-                <div class="loading-text">Loading Analytics...</div>
+            <div class="valuation-card">
+                <h3>📦 Inventory Valuation</h3>
+                <div class="val-grid">
+                    <div>
+                        <span class="stat-label">Asset Cost</span>
+                        <span id="valCost" class="stat-value small">₦0</span>
+                    </div>
+                    <div>
+                        <span class="stat-label">Potential Sale</span>
+                        <span id="valSale" class="stat-value small">₦0</span>
+                    </div>
+                </div>
             </div>
+
+            <div id="leaderboardContent" class="stock-list"></div>
         </div>
     </div>
     <script src="script.js"></script>
