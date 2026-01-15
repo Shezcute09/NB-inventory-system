@@ -3,11 +3,10 @@ let inventoryData = { categories: {}, stockLevels: {}, analytics: {}, valuation:
 let trendChart, distChart;
 let currentStaff = null;
 
-// Define your Staff PINs here
 const staffList = {
-    "1213": "Dennis",
-    "2396": "Demola",
-    "9845": "Tunmise"
+    "1234": "Dennis",
+    "5678": "Staff A",
+    "0000": "The Oracle"
 };
 
 async function handleLogin() {
@@ -70,14 +69,60 @@ function updateDashboardDisplay() {
 
     if (!data) return;
 
+    // Financial Cards
     document.getElementById('displayRevenue').textContent = `₦${data.revenue.toLocaleString()}`;
     document.getElementById('displayNet').textContent = `₦${data.net.toLocaleString()}`;
     document.getElementById('displayGross').textContent = `₦${data.gross.toLocaleString()}`;
     document.getElementById('displayExpenses').textContent = `₦${data.expenses.toLocaleString()}`;
-    document.getElementById('valCost').textContent = `₦${inventoryData.valuation.cost.toLocaleString()}`;
-    document.getElementById('valSale').textContent = `₦${inventoryData.valuation.sale.toLocaleString()}`;
     
+    // Valuation Cards
+    document.getElementById('valCost').textContent = `₦${inventoryData.valuation.cost.toLocaleString()}`;
+    document.getElementById('valRetail').textContent = `₦${inventoryData.valuation.retail.toLocaleString()}`;
+    document.getElementById('valReseller').textContent = `₦${inventoryData.valuation.reseller.toLocaleString()}`;
+    
+    initCharts(data);
     renderLeaderboards(data);
+}
+
+function initCharts(currentData) {
+    const ctxTrend = document.getElementById('revenueTrendChart').getContext('2d');
+    const ctxDist = document.getElementById('typeDistChart').getContext('2d');
+    const history = inventoryData.analytics.history;
+
+    if (trendChart) trendChart.destroy();
+    if (distChart) distChart.destroy();
+
+    trendChart = new Chart(ctxTrend, {
+        type: 'line',
+        data: {
+            labels: history.labels,
+            datasets: [{
+                label: 'Revenue Trend (₦)',
+                data: history.revenue,
+                borderColor: '#2980b9',
+                backgroundColor: 'rgba(41, 128, 185, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    distChart = new Chart(ctxDist, {
+        type: 'pie',
+        data: {
+            labels: ['Retail', 'Reseller'],
+            datasets: [{
+                data: [currentData.retailRev || 0, currentData.resellerRev || 0],
+                backgroundColor: ['#27ae60', '#f39c12']
+            }]
+        },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: { title: { display: true, text: 'Sales Split' } }
+        }
+    });
 }
 
 function renderLeaderboards(data) {
@@ -97,7 +142,7 @@ function renderLeaderboards(data) {
         sec.data.forEach(item => {
             const row = document.createElement('div');
             row.className = 'stock-row';
-            row.innerHTML = `<span>${item.name}</span><strong>₦${item.value.toLocaleString()}</strong>`;
+            row.innerHTML = `<span>${item.name}</span><strong>${typeof item.value === 'number' ? item.value.toLocaleString() : item.value}</strong>`;
             container.appendChild(row);
         });
     });
@@ -114,7 +159,7 @@ function populateCategories() {
     catSelect.disabled = false;
 }
 
-// Event Listeners
+// UI Event Listeners
 document.getElementById('loginBtn').addEventListener('click', handleLogin);
 document.getElementById('viewEntryBtn').addEventListener('click', () => toggleView('entry'));
 document.getElementById('viewDashBtn').addEventListener('click', () => toggleView('dashboard'));
@@ -124,12 +169,35 @@ document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
 document.getElementById('monthSelector').addEventListener('change', updateDashboardDisplay);
 document.getElementById('yearSelector').addEventListener('change', updateDashboardDisplay);
 
+// Dependents
+document.getElementById('category').addEventListener('change', (e) => {
+    const prodSelect = document.getElementById('product');
+    const products = inventoryData.categories[e.target.value] || [];
+    prodSelect.innerHTML = '<option value="">Select Item</option>';
+    products.forEach(p => {
+        const opt = document.createElement('option'); opt.value = p; opt.textContent = p; prodSelect.appendChild(opt);
+    });
+    prodSelect.disabled = false;
+});
+
+document.getElementById('product').addEventListener('change', (e) => {
+    const stock = inventoryData.stockLevels[e.target.value];
+    const badge = document.getElementById('stockBadge');
+    if (stock !== undefined) {
+        badge.textContent = `Stock: ${stock}`;
+        badge.className = `stock-badge ${stock <= 0 ? 'out-stock' : (stock <= 5 ? 'low-stock' : 'good-stock')}`;
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+});
+
 function toggleView(view) {
     document.getElementById('opForm').classList.toggle('hidden', view !== 'entry');
     document.getElementById('dashboardView').classList.toggle('hidden', view !== 'dashboard');
 }
 
-// Simplified form submission including currentStaff
+// Form Submission
 document.getElementById('opForm').onsubmit = async (e) => {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
