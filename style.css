@@ -25,11 +25,12 @@ body {
     box-shadow: 0 10px 25px rgba(0,0,0,0.1);
 }
 
-/* LOGIN MODAL */
+/* LOGIN MODAL FIXES */
 .modal-overlay {
     position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(44, 62, 80, 0.95);
+    top: 0; left: 0; 
+    width: 100%; height: 100%;
+    background: rgba(44, 62, 80, 0.98);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -38,22 +39,60 @@ body {
 
 .login-box {
     background: white;
-    padding: 40px;
+    padding: 30px;
     border-radius: 20px;
     text-align: center;
-    width: 90%;
-    max-width: 350px;
+    width: 85%;
+    max-width: 320px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+}
+
+.login-logo {
+    width: 120px; /* Fixed oversized logo */
+    height: auto;
+    margin-bottom: 15px;
+}
+
+.login-box h2 {
+    margin: 10px 0;
+    color: var(--primary);
+    font-size: 1.4rem;
+}
+
+.login-box p {
+    color: #666;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
 }
 
 .login-box input {
     width: 100%;
-    padding: 15px;
-    margin: 20px 0;
+    padding: 12px;
+    margin-bottom: 20px;
     font-size: 1.5rem;
     text-align: center;
-    letter-spacing: 10px;
-    border: 2px solid #ddd;
+    letter-spacing: 8px;
+    border: 2px solid #eee;
     border-radius: 10px;
+    background: #f9f9f9;
+    box-sizing: border-box; /* Ensures padding doesn't break width */
+}
+
+#loginBtn {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+#loginBtn:hover {
+    background: #1f6391;
 }
 
 /* DASHBOARD COMPONENTS */
@@ -111,9 +150,22 @@ body {
     font-size: 0.9rem;
 }
 
+.error-msg {
+    color: var(--danger);
+    font-size: 0.85rem;
+    margin-top: 10px;
+}
+
 .hidden { display: none !important; }
 
 /* TABS */
 .view-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
 .tab-btn { flex: 1; padding: 10px; border: none; background: #eee; border-radius: 8px; cursor: pointer; }
 .active-tab { background: var(--accent); color: white; }
+
+/* LOGO IN MAIN CONTENT */
+.company-logo {
+    max-width: 100px;
+    height: auto;
+    margin-bottom: 10px;
+}
