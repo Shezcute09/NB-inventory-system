@@ -4,9 +4,9 @@ let trendChart, distChart;
 let currentStaff = null;
 
 const staffList = {
-    "1234": "Dennis",
-    "5678": "Staff A",
-    "0000": "The Oracle"
+    "1213": "Dennis",
+    "5896": "Tunmise",
+    "0245": "Mr. Demola"
 };
 
 async function handleLogin() {
