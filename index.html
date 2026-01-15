@@ -11,11 +11,9 @@
     <!-- LOGIN OVERLAY -->
     <div id="loginOverlay" class="modal-overlay">
         <div class="login-box">
-            <div class="logo-container">
-                <img src="assets/logo.png" alt="NB AUTOMATED" class="login-logo" onerror="this.style.display='none'">
-            </div>
+            <img src="assets/logo.png" alt="NB AUTOMATED" class="login-logo" onerror="this.style.display='none'">
             <h2>Staff Access</h2>
-            <p>Enter your 4-digit PIN to unlock</p>
+            <p>Enter 4-digit PIN</p>
             <input type="password" id="pinInput" placeholder="PIN" maxlength="4" inputmode="numeric">
             <button id="loginBtn">Unlock Portal</button>
             <p id="loginError" class="error-msg hidden"></p>
@@ -49,7 +47,7 @@
             </div>
             <div class="input-group" id="catGroup">
                 <label>Category</label>
-                <select id="category" required disabled><option value="">Syncing Categories...</option></select>
+                <select id="category" required disabled><option value="">Syncing...</option></select>
             </div>
             <div class="input-group">
                 <div class="label-row">
@@ -57,6 +55,7 @@
                     <span id="stockBadge" class="stock-badge hidden"></span>
                 </div>
                 <select id="product" required disabled><option value="">Select Category First</option></select>
+                <input type="text" id="manualInput" class="hidden" placeholder="Reason for expense">
             </div>
             <div class="input-group">
                 <label id="qtyLabel">Quantity</label>
@@ -103,10 +102,19 @@
                         <span id="valCost" class="stat-value small">₦0</span>
                     </div>
                     <div>
-                        <span class="stat-label">Potential Sale</span>
-                        <span id="valSale" class="stat-value small">₦0</span>
+                        <span class="stat-label">Retail Val</span>
+                        <span id="valRetail" class="stat-value small">₦0</span>
+                    </div>
+                    <div>
+                        <span class="stat-label">Reseller Val</span>
+                        <span id="valReseller" class="stat-value small">₦0</span>
                     </div>
                 </div>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-box"><canvas id="revenueTrendChart"></canvas></div>
+                <div class="chart-box"><canvas id="typeDistChart"></canvas></div>
             </div>
 
             <div id="leaderboardContent" class="stock-list"></div>
